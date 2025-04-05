@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\EventResource;
 use App\Models\Event;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 
 class EventController extends Controller
 {
@@ -16,7 +19,34 @@ class EventController extends Controller
      */
     public function index(): AnonymousResourceCollection
     {
-        return EventResource::collection(Event::with('user')->paginate(10));
+        $query = Event::query();
+
+        $relations = ['user', 'attendees', 'attendees.user'];
+
+        foreach ($relations as $relation) {
+            $query->when(
+                $this->shouldIncludeRelations($relation),
+                fn(Builder $q) => $q->with($relation)
+            );
+        }
+
+        return EventResource::collection($query->latest()->paginate(10));
+    }
+
+    private function shouldIncludeRelations(string $relation): bool
+    {
+        $includes = request()->query('include');
+
+        if($includes === null) {
+            return false;
+        }
+
+        $relations = array_map(
+            fn($relation) => trim($relation),
+            explode(',', $includes)
+        );
+
+        return in_array($relation, $relations);
     }
 
     /**
