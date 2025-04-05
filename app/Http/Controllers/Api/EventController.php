@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\EventResource;
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -14,17 +15,17 @@ class EventController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): Collection
+    public function index(): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
     {
-        return Event::all();
+        return EventResource::collection(Event::with('user')->get());
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): Event
+    public function store(Request $request): EventResource
     {
-        return Event::create([
+        $event = Event::create([
             ...$request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -33,20 +34,22 @@ class EventController extends Controller
             ]),
             'user_id' => 1
         ]);
+
+        return new EventResource($event);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Event $event)
+    public function show(Event $event): EventResource
     {
-        return $event;
+        return new EventResource($event->load(['user', 'attendees']));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Event $event): Event
+    public function update(Request $request, Event $event): EventResource
     {
         $event->update(
             $request->validate([
@@ -57,7 +60,7 @@ class EventController extends Controller
             ])
         );
 
-        return $event;
+        return new EventResource($event);
     }
 
     /**
