@@ -4,14 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class EventController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): Collection
     {
         return Event::all();
     }
@@ -19,7 +22,7 @@ class EventController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request): Event
     {
         return Event::create([
             ...$request->validate([
@@ -43,16 +46,27 @@ class EventController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Event $event): Event
     {
-        //
+        $event->update(
+            $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'description' => 'nullable|string',
+                'start_time' => 'sometimes|date',
+                'end_time' => 'sometimes|date|after:start_time'
+            ])
+        );
+
+        return $event;
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Event $event): Response
     {
-        //
+        $event->delete();
+
+        return response(status: 204);
     }
 }
